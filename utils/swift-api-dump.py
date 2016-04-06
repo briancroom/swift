@@ -64,6 +64,7 @@ SKIPPED_FRAMEWORKS = {
     'Tk',
     'VideoDecodeAcceleration',
     'vecLib',
+    'XCPlayground',
 }
 
 
@@ -207,6 +208,13 @@ def collect_frameworks(sdk):
         return ()
     sdk_path = sdk_path.rstrip()
 
+    (exitcode, sdk_platform_path, err) = run_command(
+        ["xcrun", "--show-sdk-platform-path", "-sdk", sdk])
+    if exitcode != 0:
+        print('error: framework collection failed with error %d' % (exitcode))
+        return ()
+    sdk_platform_path = sdk_platform_path.rstrip()
+
     (exitcode, sdk_version, err) = run_command(
         ["xcrun", "--show-sdk-version", "-sdk", sdk])
     if exitcode != 0:
@@ -218,10 +226,10 @@ def collect_frameworks(sdk):
           (pretty_sdk_name(sdk), sdk_version, sdk_path))
 
     # Collect all of the framework names
-    frameworks_dir = '%s/System/Library/Frameworks' % sdk_path
+    frameworks_dirs = ['%s/System/Library/Frameworks' % sdk_path, '%s/Developer/Library/Frameworks' % sdk_platform_path]
     framework_matcher = re.compile('([A-Za-z_0-9.]+)\.framework')
     frameworks = set()
-    for entry in os.listdir(frameworks_dir):
+    for entry in [entry for dir in frameworks_dirs if os.path.exists(dir) for entry in os.listdir(dir)]:
         match = framework_matcher.match(entry)
         if match:
             framework = match.group(1)
